@@ -8,6 +8,11 @@ app.get('/', (req, res) => {
   res.send('Hello World');
 });
 
+app.get('/status', (req, res) => {
+  res.json({ status: 'OK' });
+});
+
+
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server running on port ${port}`);
 });
