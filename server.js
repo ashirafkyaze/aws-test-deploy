@@ -118,6 +118,11 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/client/dist/index.html');
 });
 
+// Catch-all route for SPA
+app.get('*', (req, res) => {
+  res.sendFile(__dirname + '/client/dist/index.html');
+});
+
 // Status route for health checks
 app.get('/status', (req, res) => {
   res.json({ status: 'OK' });
