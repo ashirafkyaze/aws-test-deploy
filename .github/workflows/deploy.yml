@@ -28,7 +28,9 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    
+    # 4️⃣ Build client
+    - name: Build client
+      run: cd client && npm install && npm run build
 
     # - name: Run tests
     #   run: npm test
@@ -44,15 +46,16 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # 7️⃣ Build & push Docker image
-    - name: Build and push Docker image
+    # 7️⃣ Build & push backend Docker image
+    - name: Build and push backend Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
+        dockerfile: Dockerfile.app
         push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/aws-test-app:latest
+        tags: ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
 
-    # 8️⃣ Deploy to EC2 instance
+    # 9️⃣ Deploy to EC2 instance
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.8
       with:
@@ -61,10 +64,10 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           echo "Pulling latest Docker image..."
-          docker pull ${{ secrets.DOCKER_USERNAME }}/aws-test-app:latest
+          docker pull ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
           echo "Stopping old container if exists..."
           docker stop aws-test-app || true
           docker rm aws-test-app || true
           echo "Running new container..."
-          docker run -d --name aws-test-app -p 80:3000 --restart unless-stopped ${{ secrets.DOCKER_USERNAME }}/aws-test-app:latest
+          docker run -d --name aws-test-app -p 80:3000 --restart unless-stopped -v /opt/aws-test-app/db:/app/database.sqlite -e NODE_ENV=production -e JWT_SECRET=${{ secrets.JWT_SECRET }} -e STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
           echo "Deployment complete!"

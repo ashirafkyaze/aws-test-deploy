@@ -1,8 +1,35 @@
 version: "3.8"
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.app
     container_name: new-node-app
     ports:
-      - "80:3000"
+      - "3000:3000"
     restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/aws_test_app
+  client:
+    build: .
+    container_name: client-app
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    depends_on:
+      - app
+  postgres:
+    image: postgres:13
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: aws_test_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
