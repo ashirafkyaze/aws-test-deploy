@@ -1,6 +1,5 @@
 name: Build, Test & Deploy Docker Image
 
-# Trigger on push or PR to main branch
 on:
   push:
     branches:
@@ -14,60 +13,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1️⃣ Checkout repo
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # 1️⃣ Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # 2️⃣ Set up Node.js for tests
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
+      # 2️⃣ Set up Node.js for tests
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-    # 3️⃣ Install dependencies
-    - name: Install dependencies
-      run: npm install
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: npm install
 
-    # 4️⃣ Build client
-    - name: Build client
-      run: cd client && npm install && npm run build
+      # 4️⃣ Build client
+      - name: Build client
+        run: cd client && npm install && npm run build
 
-    # - name: Run tests
-    #   run: npm test
+      # - name: Run tests
+      #   run: npm test
 
-    # 5️⃣ Set up Docker Buildx
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      # 5️⃣ Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    # 6️⃣ Log in to Docker Hub
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      # 6️⃣ Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # 7️⃣ Build & push backend Docker image
-    - name: Build and push backend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        dockerfile: Dockerfile.app
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
+      # 7️⃣ Build & push backend Docker image
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          dockerfile: Dockerfile.app
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
 
-    # 9️⃣ Deploy to EC2 instance
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.8
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          echo "Pulling latest Docker image..."
-          docker pull ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
-          echo "Stopping old container if exists..."
-          docker stop aws-test-app || true
-          docker rm aws-test-app || true
-          echo "Running new container..."
-          docker run -d --name aws-test-app -p 80:3000 --restart unless-stopped -v /opt/aws-test-app/db:/app/database.sqlite -e NODE_ENV=production -e JWT_SECRET=${{ secrets.JWT_SECRET }} -e STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
-          echo "Deployment complete!"
+      # 8️⃣ Deploy to EC2 instance
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Pulling latest Docker image..."
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
+            echo "Stopping old container if exists..."
+            sudo docker stop aws-test-app || true
+            sudo docker rm aws-test-app || true
+            echo "Running new container..."
+            sudo docker run -d \
+              --name aws-test-app \
+              -p 80:3000 \
+              -v /opt/aws-test-app/db:/app/database.sqlite \
+              -e NODE_ENV=production \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} \
+              --restart unless-stopped \
+              ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
+            echo "Deployment complete!"
