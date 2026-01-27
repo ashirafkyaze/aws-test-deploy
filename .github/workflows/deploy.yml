@@ -54,8 +54,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/aws-test-app-backend:latest
 
-      # 8️⃣ Deploy to EC2 instance
-      
+      # 8️⃣ Deploy to EC2 instan
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.8
         with:
